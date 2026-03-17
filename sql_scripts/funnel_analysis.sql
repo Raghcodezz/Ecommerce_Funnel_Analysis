@@ -1,17 +1,36 @@
--- This is to understand number of users who proceed to next step of funnel and how many drop off.
-with cte as(select 
-pagetype,
-count(userid) as user_count
-from ecommerce_journey
-group by pagetype
+-- =========================================================
+-- Objective: Understand how many users reach each stage
+-- of the funnel and calculate overall conversion from entry
+-- =========================================================
+
+WITH cte AS (
+
+    -- Step 1: Count number of users at each page (funnel stage)
+    SELECT 
+        pagetype,
+        COUNT(userid) AS user_count
+    FROM ecommerce_journey
+    GROUP BY pagetype
 )
-select 
-pagetype,
-user_count,
-cast(round(user_count*100.0/(select 
-count(userid) as user_count
-from ecommerce_journey
-where pagetype='home'),2) as decimal(10,2))
-as overall_conversion
-from cte
-order by user_count desc
+
+-- Step 2: Calculate overall conversion relative to home page
+SELECT 
+    pagetype,
+    user_count,
+
+    -- Conversion = (users at current stage / users at home page) * 100
+    CAST(
+        ROUND(
+            user_count * 100.0 / (
+                -- Total users who entered the funnel (home page)
+                SELECT COUNT(userid) 
+                FROM ecommerce_journey
+                WHERE pagetype = 'home'
+            ), 
+        2) 
+    AS DECIMAL(10,2)) AS overall_conversion
+
+FROM cte
+
+-- Sorting stages by highest user count
+ORDER BY user_count DESC;
